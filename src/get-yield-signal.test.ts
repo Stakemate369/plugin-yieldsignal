@@ -31,9 +31,19 @@ describe("yieldSignalPlugin", () => {
     expect(action.similes).toContain("BEST_LENDING_RATE");
   });
 
-  it("validate sempre resolve true", async () => {
+  it("validate exige intenção de yield explícita (não dispara em qualquer mensagem)", async () => {
     const action = (yieldSignalPlugin.actions ?? [])[0];
-    await expect(action.validate({} as never, {} as never)).resolves.toBe(true);
+    await expect(
+      action.validate({} as never, {
+        content: { text: "best USDC lending rate?" },
+      } as never),
+    ).resolves.toBe(true);
+    await expect(
+      action.validate({} as never, { content: { text: "hi there" } } as never),
+    ).resolves.toBe(false);
+    await expect(
+      action.validate({} as never, {} as never),
+    ).resolves.toBe(false);
   });
 
   it("handler retorna ActionResult com success:true e o texto formatado quando a chamada paga funciona", async () => {

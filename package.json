@@ -1,6 +1,6 @@
 {
   "name": "elizaos-plugin-yieldsignal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Real-time, risk-weighted USDC/WETH lending APY signal on Base (Aave/Compound/Morpho/Moonwell/Euler/Fluid), paid per call via x402 and EIP-712 signed by the seller",
   "type": "module",
   "main": "dist/index.js",
@@ -41,7 +41,10 @@
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.53.0",
-    "@x402/fetch": "^2.18.0"
+    "@x402/core": "^2.19.0",
+    "@x402/evm": "^2.19.0",
+    "@x402/fetch": "^2.18.0",
+    "viem": "^2.55.0"
   },
   "peerDependencies": {
     "@elizaos/core": ">=1.7.0"

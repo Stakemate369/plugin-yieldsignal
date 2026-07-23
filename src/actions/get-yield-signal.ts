@@ -6,7 +6,8 @@ import type {
   Memory,
   State,
 } from "@elizaos/core";
-import { fetchYieldSignal, type YieldSignalAsset } from "../client.js";
+import { fetchYieldSignal } from "../client.js";
+import { hasYieldIntent, type YieldSignalAsset } from "../security.js";
 
 function parseAsset(text: string): YieldSignalAsset {
   return /weth|eth\b/i.test(text) ? "WETH" : "USDC";
@@ -19,8 +20,12 @@ export const getYieldSignalAction: Action = {
     "Real-time risk-weighted USDC or WETH lending APY across Aave, Compound, Morpho, Moonwell, Euler and Fluid on Base. Costs $0.01 USDC per call via x402.",
   validate: async (
     _runtime: IAgentRuntime,
-    _message: Memory,
-  ): Promise<boolean> => true,
+    message: Memory,
+  ): Promise<boolean> => {
+    const text =
+      typeof message.content?.text === "string" ? message.content.text : "";
+    return hasYieldIntent(text);
+  },
   handler: async (
     _runtime: IAgentRuntime,
     message: Memory,
