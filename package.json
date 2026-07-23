@@ -1,0 +1,75 @@
+{
+  "name": "plugin-yieldsignal",
+  "version": "0.1.0",
+  "description": "Real-time, risk-weighted USDC/WETH lending APY signal on Base (Aave/Compound/Morpho/Moonwell/Euler/Fluid), paid per call via x402 and EIP-712 signed by the seller",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Stakemate369/plugin-yieldsignal.git"
+  },
+  "homepage": "https://yieldsignal.vercel.app",
+  "keywords": [
+    "elizaos",
+    "eliza",
+    "plugin",
+    "x402",
+    "defi",
+    "yield",
+    "base",
+    "apy"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "images"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coinbase/cdp-sdk": "^1.53.0",
+    "@x402/fetch": "^2.18.0"
+  },
+  "peerDependencies": {
+    "@elizaos/core": ">=1.7.0"
+  },
+  "devDependencies": {
+    "@elizaos/core": "^1.7.2",
+    "@types/node": "^24.12.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:plugin:1.0.0",
+    "pluginParameters": {
+      "CDP_API_KEY_ID": {
+        "type": "string",
+        "description": "Coinbase CDP API key id — used by the agent's own CDP wallet to pay $0.01 USDC per signal call via x402."
+      },
+      "CDP_API_KEY_SECRET": {
+        "type": "string",
+        "description": "Coinbase CDP API key secret."
+      },
+      "CDP_WALLET_SECRET": {
+        "type": "string",
+        "description": "Coinbase CDP wallet secret for the paying wallet (Base mainnet, needs USDC)."
+      }
+    }
+  }
+}
