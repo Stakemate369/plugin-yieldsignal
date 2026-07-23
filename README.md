@@ -1,4 +1,4 @@
-# plugin-yieldsignal
+# elizaos-plugin-yieldsignal
 
 Real-time, risk-weighted USDC/WETH lending APY signal across Aave, Compound, Morpho, Moonwell, Euler and Fluid on Base — paid per call ($0.01 USDC) via the [x402](https://x402.org) protocol through [YieldSignal](https://yieldsignal.vercel.app).
 
@@ -38,7 +38,7 @@ The plugin's wallet needs a small amount of USDC on Base ($0.01 per call).
 ## Usage
 
 ```typescript
-import { yieldSignalPlugin } from "plugin-yieldsignal";
+import { yieldSignalPlugin } from "elizaos-plugin-yieldsignal";
 
 const character = {
   // ...
