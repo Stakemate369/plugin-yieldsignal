@@ -2,6 +2,10 @@
 
 Real-time, risk-weighted USDC/WETH lending APY signal across Aave, Compound, Morpho, Moonwell, Euler and Fluid on Base — paid per call ($0.01 USDC) via the [x402](https://x402.org) protocol through [YieldSignal](https://yieldsignal.vercel.app).
 
+> **Verifiable, not self-declared.** Responses are EIP-712 signed and the seller keeps a public on-chain track record (ERC-8004 identity + EAS attestations on Base). Its machine-readable accuracy is live at [`/accuracy.json`](https://yieldsignal.vercel.app/accuracy.json) — currently **93.75% within-tolerance** (the flagged protocol was the leader or within 25bps), average regret **8bps**. A paying agent can check who to trust by the proven record, not the promise.
+
+**Quick start:** see [`examples/`](examples/README.md) for a copy-paste plugin setup and a standalone fetch-and-verify snippet.
+
 ## Purpose / role
 
 Adds a single buyer-side action, `GET_YIELD_SIGNAL`, that lets an elizaOS agent proactively call and pay for an external x402-protected API. This is distinct from `@elizaos/plugin-x402` (seller-side middleware for protecting this agent's *own* HTTP routes) — there's currently no overlap, since that package registers no actions/providers/services of its own.
