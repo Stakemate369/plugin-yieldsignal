@@ -7,6 +7,7 @@ import {
   parseYieldSignalResponse,
   verifyYieldSignalSignature,
   YIELDSIGNAL_PAYEE,
+  YIELD_SIGNAL_PATHS,
 } from "./security.js";
 
 // Mirror of the server's EIP-712 struct (src/attestation/schema.ts +
@@ -213,5 +214,61 @@ describe("hasYieldIntent (explicit-intent gate)", () => {
     expect(hasYieldIntent("hey, how are you?")).toBe(false);
     expect(hasYieldIntent("I just sent you some USDC")).toBe(false);
     expect(hasYieldIntent("")).toBe(false);
+  });
+});
+
+describe("suporte a ETH_STAKING (corrigido na 0.2.1)", () => {
+  it("aceita uma resposta com asset ETH_STAKING — antes o parser lançava 'unexpected asset'", () => {
+    const body = JSON.stringify({
+      asset: "ETH_STAKING",
+      bestProtocol: "lido",
+      gapBps: 8,
+      rates: [
+        { protocol: "lido", apyBps: 296, weightedApyBps: 293, source: "defillama", asOf: "2026-07-29T12:00:00.000Z" },
+      ],
+      asOf: "2026-07-29T12:00:05.000Z",
+    });
+    const parsed = parseYieldSignalResponse(body);
+    expect(parsed.asset).toBe("ETH_STAKING");
+    expect(parsed.bestProtocol).toBe("lido");
+  });
+
+  it("continua rejeitando asset desconhecido", () => {
+    expect(() =>
+      parseYieldSignalResponse(
+        JSON.stringify({ asset: "DOGE", bestProtocol: "x", gapBps: 1, rates: [], asOf: "z" }),
+      ),
+    ).toThrow(/unexpected asset/);
+  });
+
+  it("ignora campos extras da resposta (cobertura/omittedProtocols) sem quebrar", () => {
+    const parsed = parseYieldSignalResponse(
+      JSON.stringify({
+        asset: "USDC",
+        bestProtocol: "compound",
+        gapBps: 12,
+        rates: [],
+        omittedProtocols: ["aave", "morpho"],
+        coverage: { read: 4, expected: 6 },
+        asOf: "2026-07-29T12:00:05.000Z",
+      }),
+    );
+    expect(parsed.asset).toBe("USDC");
+  });
+
+  it("o caminho de cada asset é o canônico do serviço — sem derivar URL de string", () => {
+    expect(YIELD_SIGNAL_PATHS.ETH_STAKING).toBe("/signal/eth-staking-yield");
+    expect(YIELD_SIGNAL_PATHS.USDC).toBe("/signal/usdc-base-yield");
+    expect(YIELD_SIGNAL_PATHS.WETH).toBe("/signal/weth-base-yield");
+    // A regra antiga (`asset.toLowerCase() + "-base-yield"`) produzia isto:
+    expect(YIELD_SIGNAL_PATHS.ETH_STAKING).not.toContain("_");
+    expect(YIELD_SIGNAL_PATHS.ETH_STAKING).not.toContain("-base-");
+  });
+
+  it("intenção de staking aciona a action (termo 'stake'/'staking')", () => {
+    expect(hasYieldIntent("where should I stake my ETH?")).toBe(true);
+    expect(hasYieldIntent("best ETH staking yield right now")).toBe(true);
+    // Não é sobre rendimento: continua fora.
+    expect(hasYieldIntent("I just sent you some ETH")).toBe(false);
   });
 });

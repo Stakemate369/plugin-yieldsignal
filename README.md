@@ -1,6 +1,11 @@
 # elizaos-plugin-yieldsignal
 
-Real-time, risk-weighted USDC/WETH lending APY signal across Aave, Compound, Morpho, Moonwell, Euler and Fluid on Base — paid per call ($0.01 USDC) via the [x402](https://x402.org) protocol through [YieldSignal](https://yieldsignal.vercel.app).
+Real-time, risk-weighted yield signals — paid per call ($0.01 USDC) via the [x402](https://x402.org) protocol through [YieldSignal](https://yieldsignal.vercel.app):
+
+- **ETH liquid staking** (Ethereum mainnet) across Lido, Rocket Pool, Coinbase Wrapped Staked ETH, Frax Ether and Binance Staked ETH
+- **USDC / WETH lending** (Base) across Aave, Compound, Morpho, Moonwell, Euler and Fluid
+
+Per-asset verified accuracy is public and free at [`/accuracy.json`](https://yieldsignal.vercel.app/accuracy.json), computed from an on-chain EAS track record — check it before trusting the signal.
 
 > **Verifiable, not self-declared.** Responses are EIP-712 signed and the seller keeps a public on-chain track record (ERC-8004 identity + EAS attestations on Base). Its machine-readable accuracy is live at [`/accuracy.json`](https://yieldsignal.vercel.app/accuracy.json) — currently **93.75% within-tolerance** (the flagged protocol was the leader or within 25bps), average regret **8bps**. A paying agent can check who to trust by the proven record, not the promise.
 
@@ -16,7 +21,7 @@ Every response from YieldSignal is signed (EIP-712 typed data) by the payment-re
 
 | Kind | Name | What it does |
 |------|------|--------------|
-| Action | `GET_YIELD_SIGNAL` | Fetches the current best lending protocol and risk-weighted APY (bps) for USDC or WETH on Base. Parses `USDC`/`WETH` from the triggering message text (defaults to USDC). |
+| Action | `GET_YIELD_SIGNAL` | Fetches the current best protocol and risk-weighted APY (bps). Parses `ETH_STAKING`/`USDC`/`WETH` from the triggering message text — staking wins on "stake"/"staking"/bare "ETH", `WETH` and `USDC` on an explicit mention, defaulting to `USDC`. |
 
 ## Layout
 

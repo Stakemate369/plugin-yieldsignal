@@ -1,7 +1,7 @@
 {
   "name": "elizaos-plugin-yieldsignal",
-  "version": "0.2.0",
-  "description": "Real-time, risk-weighted USDC/WETH lending APY signal on Base (Aave/Compound/Morpho/Moonwell/Euler/Fluid), paid per call via x402 and EIP-712 signed by the seller",
+  "version": "0.2.1",
+  "description": "Real-time, risk-weighted ETH liquid staking + USDC/WETH lending APY signal on Base (Aave/Compound/Morpho/Moonwell/Euler/Fluid), paid per call via x402 and EIP-712 signed by the seller",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

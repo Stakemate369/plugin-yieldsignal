@@ -5,7 +5,29 @@ import { getAddress, keccak256, toBytes, verifyTypedData } from "viem";
 // runtime dependency on the CDP SDK (only a type-only import), so it can be
 // unit-tested and reasoned about in isolation from wallet/network code.
 
-export type YieldSignalAsset = "USDC" | "WETH";
+/**
+ * Assets vendidos pelo serviço. `ETH_STAKING` (staking líquido de ETH na
+ * Ethereum mainnet) estava FALTANDO até a 0.2.1 — o parser rejeitava a resposta
+ * com "unexpected asset" e o client montava uma URL inexistente, então o plugin
+ * simplesmente não conseguia consumir esse produto. É justamente o asset com o
+ * melhor histórico verificado de acurácia no serviço.
+ */
+export type YieldSignalAsset = "USDC" | "WETH" | "ETH_STAKING";
+
+export const YIELD_SIGNAL_ASSETS: readonly YieldSignalAsset[] = ["ETH_STAKING", "USDC", "WETH"];
+
+/**
+ * Caminho canônico por asset. Mapa EXPLÍCITO em vez de montar a URL a partir do
+ * nome do asset: a versão anterior fazia `/signal/${asset.toLowerCase()}-base-yield`,
+ * que para `ETH_STAKING` gerava `/signal/eth_staking-base-yield` — underscore em
+ * vez de hífen E o sufixo errado, dois erros de uma vez. Rota de recurso pago
+ * não é lugar pra derivação de string.
+ */
+export const YIELD_SIGNAL_PATHS: Record<YieldSignalAsset, string> = {
+  ETH_STAKING: "/signal/eth-staking-yield",
+  USDC: "/signal/usdc-base-yield",
+  WETH: "/signal/weth-base-yield",
+};
 
 // --- Fixed facts about the service being paid --------------------------------
 // WHO gets paid, on WHICH chain, in WHICH asset. Pinned here so the wallet can
@@ -93,7 +115,7 @@ export function parseYieldSignalResponse(raw: string): YieldSignalResponse {
     throw new Error("YieldSignal response was not a JSON object");
   }
   const d = data as Record<string, unknown>;
-  if (d.asset !== "USDC" && d.asset !== "WETH") {
+  if (!YIELD_SIGNAL_ASSETS.includes(d.asset as YieldSignalAsset)) {
     throw new Error(`YieldSignal response has an unexpected asset: ${String(d.asset)}`);
   }
   if (
@@ -109,7 +131,7 @@ export function parseYieldSignalResponse(raw: string): YieldSignalResponse {
     throw new Error("YieldSignal response has a malformed rates array");
   }
   return {
-    asset: d.asset,
+    asset: d.asset as YieldSignalAsset,
     bestProtocol: d.bestProtocol,
     gapBps: d.gapBps,
     rates: d.rates as YieldSignalRate[],
@@ -196,8 +218,11 @@ export async function verifyYieldSignalSignature(params: {
 // call), so it must only be eligible when the message is actually about lending
 // yield — not on every message. A bare asset mention ("I hold some USDC") is not
 // enough; the text must express a yield/rate intent.
+// `stake|staking` entrou na 0.2.1 junto com o suporte a ETH_STAKING: sem isso,
+// "best ETH staking yield?" só passava pelo termo genérico "yield" e um pedido
+// como "where should I stake my ETH?" não acionava a action de jeito nenhum.
 const YIELD_INTENT =
-  /\b(yield|apy|apr|lending|lend|interest|supply\s+rate|borrow\s+rate|best\s+rate|best\s+.*\brate)\b/i;
+  /\b(yield|apy|apr|lending|lend|interest|stake|staking|supply\s+rate|borrow\s+rate|best\s+rate|best\s+.*\brate)\b/i;
 
 export function hasYieldIntent(text: string): boolean {
   return YIELD_INTENT.test(text);

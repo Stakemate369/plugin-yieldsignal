@@ -104,3 +104,28 @@ describe("yieldSignalPlugin", () => {
     expect(mockFetchYieldSignal).toHaveBeenCalledWith("WETH");
   });
 });
+
+describe("parseAsset (roteamento de asset pelo texto)", () => {
+  it("classifica pedido de staking como ETH_STAKING — antes virava WETH (produto errado, já pago)", async () => {
+    const { parseAsset } = await import("./actions/get-yield-signal.js");
+    expect(parseAsset("best ETH staking yield?")).toBe("ETH_STAKING");
+    expect(parseAsset("where should I stake my ETH?")).toBe("ETH_STAKING");
+    expect(parseAsset("eth-staking apy")).toBe("ETH_STAKING");
+  });
+
+  it("mantém WETH quando o pedido é explicitamente WETH", async () => {
+    const { parseAsset } = await import("./actions/get-yield-signal.js");
+    expect(parseAsset("best WETH lending rate on Base?")).toBe("WETH");
+  });
+
+  it("mantém USDC como default e quando explícito", async () => {
+    const { parseAsset } = await import("./actions/get-yield-signal.js");
+    expect(parseAsset("best USDC lending rate?")).toBe("USDC");
+    expect(parseAsset("what's the best yield?")).toBe("USDC");
+  });
+
+  it("'ETH' solto (sem WETH nem staking) resolve pra staking, não pra lending de WETH", async () => {
+    const { parseAsset } = await import("./actions/get-yield-signal.js");
+    expect(parseAsset("best ETH yield right now")).toBe("ETH_STAKING");
+  });
+});

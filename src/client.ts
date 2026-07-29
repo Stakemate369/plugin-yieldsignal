@@ -4,6 +4,7 @@ import {
   buildSpendControls,
   parseYieldSignalResponse,
   verifyYieldSignalSignature,
+  YIELD_SIGNAL_PATHS,
   type YieldSignalAsset,
   type YieldSignalResponse,
 } from "./security.js";
@@ -14,6 +15,8 @@ export {
   parseYieldSignalResponse,
   verifyYieldSignalSignature,
   YIELDSIGNAL_PAYEE,
+  YIELD_SIGNAL_ASSETS,
+  YIELD_SIGNAL_PATHS,
 } from "./security.js";
 export type {
   YieldSignalAsset,
@@ -58,10 +61,9 @@ export async function fetchYieldSignal(
 
   let res: Response;
   try {
-    res = await fetchWithPayment(
-      `${YIELDSIGNAL_BASE_URL}/signal/${asset.toLowerCase()}-base-yield`,
-      { signal: controller.signal },
-    );
+    res = await fetchWithPayment(`${YIELDSIGNAL_BASE_URL}${YIELD_SIGNAL_PATHS[asset]}`, {
+      signal: controller.signal,
+    });
   } finally {
     clearTimeout(timer);
   }

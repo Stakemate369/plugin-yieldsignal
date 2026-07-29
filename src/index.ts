@@ -17,7 +17,7 @@ export {
 export const yieldSignalPlugin: Plugin = {
   name: "yieldsignal",
   description:
-    "Paid (x402) real-time USDC/WETH lending yield signal on Base, signed and EAS-attested on-chain.",
+    "Paid (x402) real-time yield signal: ETH liquid staking on Ethereum mainnet plus USDC/WETH lending on Base, EIP-712 signed by the seller and EAS-attested on-chain.",
   actions: [getYieldSignalAction],
 };
 
