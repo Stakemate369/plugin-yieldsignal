@@ -54,7 +54,16 @@ export const getYieldSignalAction: Action = {
       // descrevia o produto errado, com a chamada já paga.
       const what =
         asset === "ETH_STAKING" ? "ETH liquid staking rate" : `${asset} lending rate on Base`;
-      const text = `Best ${what} right now: ${signal.bestProtocol} (${signal.gapBps}bps ahead of the runner-up).`;
+      // Cobertura parcial vai JUNTO da recomendação, não escondida no objeto:
+      // "melhor protocolo" com uma fonte muda significa "melhor entre os que
+      // responderam", e quem aloca capital precisa ver isso na própria frase.
+      const partial =
+        signal.omittedProtocols && signal.omittedProtocols.length > 0
+          ? ` Partial reading: ${signal.omittedProtocols.join(", ")} could not be read${
+              signal.coverage ? ` (${signal.coverage.read}/${signal.coverage.expected} protocols)` : ""
+            }.`
+          : "";
+      const text = `Best ${what} right now: ${signal.bestProtocol} (${signal.gapBps}bps ahead of the runner-up).${partial}`;
       await callback?.({ text });
       // `ActionResult.data` is `ProviderDataRecord`; the concrete response
       // object satisfies it structurally (all fields are JSON-serialisable),

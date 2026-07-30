@@ -85,6 +85,23 @@ export interface YieldSignalResponse {
   gapBps: number;
   rates: YieldSignalRate[];
   asOf: string;
+  /**
+   * Protocols the service tries to read for this asset but that are NOT in this
+   * response (source failed, or the pool went mute). Optional because older
+   * deployments don't send it — but when present it matters a lot: without it
+   * "best protocol" silently means "best of whatever answered". An agent
+   * allocating real capital should treat a partial reading as a weaker claim.
+   */
+  omittedProtocols?: string[];
+  coverage?: { read: number; expected: number };
+  /**
+   * Protocols whose incentive (reward-token) component could not be
+   * established — their APY is a floor, so the ranking could be inverted by an
+   * unmeasured campaign.
+   */
+  incompleteRewardData?: string[];
+  /** How the APYs are defined (e.g. "supply-apy-total-incl-rewards"). */
+  apyBasis?: string;
 }
 
 function isRate(v: unknown): v is YieldSignalRate {
@@ -136,7 +153,24 @@ export function parseYieldSignalResponse(raw: string): YieldSignalResponse {
     gapBps: d.gapBps,
     rates: d.rates as YieldSignalRate[],
     asOf: d.asOf,
+    // Passados adiante SÓ quando bem-formados. Campo ausente ou malformado
+    // nunca derruba a resposta: uma versão mais nova do servidor não pode
+    // quebrar um plugin já instalado, e uma mais velha simplesmente não manda.
+    ...(isStringArray(d.omittedProtocols) ? { omittedProtocols: d.omittedProtocols } : {}),
+    ...(isCoverage(d.coverage) ? { coverage: d.coverage } : {}),
+    ...(isStringArray(d.incompleteRewardData) ? { incompleteRewardData: d.incompleteRewardData } : {}),
+    ...(typeof d.apyBasis === "string" ? { apyBasis: d.apyBasis } : {}),
   };
+}
+
+function isStringArray(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((item) => typeof item === "string");
+}
+
+function isCoverage(v: unknown): v is { read: number; expected: number } {
+  if (typeof v !== "object" || v === null) return false;
+  const c = v as Record<string, unknown>;
+  return typeof c.read === "number" && typeof c.expected === "number";
 }
 
 /**

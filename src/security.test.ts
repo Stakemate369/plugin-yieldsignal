@@ -150,6 +150,39 @@ describe("parseYieldSignalResponse (schema validation)", () => {
     expect(() => parseYieldSignalResponse("<html>nope</html>")).toThrow();
   });
 
+  // Regressão: em 2026-07-30 o serviço passou a enviar a decomposição da APY
+  // (apyBaseBps/apyRewardBps/rewardBasis), a base de comparação (apyBasis) e a
+  // cobertura da leitura. Campo novo no servidor NÃO pode quebrar uma versão do
+  // plugin já publicada e instalada — este corpo é uma resposta real de
+  // produção, reduzida.
+  it("accepts a response carrying newer server-side fields (forward compatible)", () => {
+    const body = JSON.stringify({
+      asset: "USDC",
+      bestProtocol: "compound",
+      gapBps: 150,
+      rates: [
+        {
+          protocol: "compound",
+          apyBps: 624,
+          apyBaseBps: 624,
+          apyRewardBps: 0,
+          rewardBasis: "reported",
+          weightedApyBps: 618,
+          source: "onchain",
+          asOf: "2026-07-30T18:15:00.000Z",
+        },
+      ],
+      omittedProtocols: ["euler"],
+      coverage: { read: 5, expected: 6 },
+      apyBasis: "supply-apy-total-incl-rewards",
+      incompleteRewardData: [],
+      asOf: "2026-07-30T18:15:00.000Z",
+    });
+    const parsed = parseYieldSignalResponse(body);
+    expect(parsed.bestProtocol).toBe("compound");
+    expect(parsed.rates).toHaveLength(1);
+  });
+
   it("throws when required fields are missing", () => {
     expect(() =>
       parseYieldSignalResponse(JSON.stringify({ asset: "USDC" })),
@@ -270,5 +303,49 @@ describe("suporte a ETH_STAKING (corrigido na 0.2.1)", () => {
     expect(hasYieldIntent("best ETH staking yield right now")).toBe(true);
     // Não é sobre rendimento: continua fora.
     expect(hasYieldIntent("I just sent you some ETH")).toBe(false);
+  });
+});
+
+describe("parseYieldSignalResponse (coverage passthrough)", () => {
+  const withCoverage = (extra: Record<string, unknown>) =>
+    JSON.stringify({
+      asset: "USDC",
+      bestProtocol: "compound",
+      gapBps: 150,
+      rates: [
+        {
+          protocol: "compound",
+          apyBps: 624,
+          weightedApyBps: 618,
+          source: "onchain",
+          asOf: "2026-07-30T18:15:00.000Z",
+        },
+      ],
+      asOf: "2026-07-30T18:15:00.000Z",
+      ...extra,
+    });
+
+  it("passes coverage/omittedProtocols through so the agent can see a partial reading", () => {
+    const parsed = parseYieldSignalResponse(
+      withCoverage({ omittedProtocols: ["euler"], coverage: { read: 5, expected: 6 }, apyBasis: "supply-apy-total-incl-rewards" }),
+    );
+    expect(parsed.omittedProtocols).toEqual(["euler"]);
+    expect(parsed.coverage).toEqual({ read: 5, expected: 6 });
+    expect(parsed.apyBasis).toBe("supply-apy-total-incl-rewards");
+  });
+
+  it("leaves the fields undefined when an older deployment does not send them", () => {
+    const parsed = parseYieldSignalResponse(withCoverage({}));
+    expect(parsed.omittedProtocols).toBeUndefined();
+    expect(parsed.coverage).toBeUndefined();
+  });
+
+  it("ignores a malformed coverage block instead of throwing on an otherwise valid response", () => {
+    const parsed = parseYieldSignalResponse(
+      withCoverage({ coverage: { read: "five" }, omittedProtocols: [1, 2] }),
+    );
+    expect(parsed.coverage).toBeUndefined();
+    expect(parsed.omittedProtocols).toBeUndefined();
+    expect(parsed.bestProtocol).toBe("compound");
   });
 });
