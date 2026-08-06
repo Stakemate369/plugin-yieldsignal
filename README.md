@@ -9,6 +9,26 @@ Per-asset verified accuracy is public and free at [`/accuracy.json`](https://yie
 
 > **Verifiable, not self-declared.** Responses are EIP-712 signed and the seller keeps a public on-chain track record (ERC-8004 identity + EAS attestations on Base). Its machine-readable accuracy is live at [`/accuracy.json`](https://yieldsignal.vercel.app/accuracy.json) — currently **93.75% within-tolerance** (the flagged protocol was the leader or within 25bps), average regret **8bps**. A paying agent can check who to trust by the proven record, not the promise.
 
+## Five products, not one
+
+The signal answers *what pays best right now* — which is a commodity anyone gives away. The four risk reports answer questions nothing else sells, and each one **names what it could not establish** instead of filling the gap with a guess.
+
+| Action | Question it answers |
+|---|---|
+| `GET_YIELD_SIGNAL` | What pays best right now (Base lending or ETH staking) |
+| `GET_YIELD_DURABILITY` | Is this yield real, or a promotion about to end? |
+| `GET_EXIT_CAPACITY` | Can I actually withdraw my size from that market? |
+| `GET_RATE_SENSITIVITY` | How close is this market to the kink where borrow rates explode? |
+| `GET_SHARED_EXPOSURE` | I'm in N venues — but behind how many distinct risks? |
+
+Measured on live readings:
+
+- **Durability** — WETH on Base led with `euler` at 299bps, but **57.9% of that was incentive** (floor 126bps), while `aave`'s 153bps was entirely base interest. Without incentives the ranking flips.
+- **Sensitivity** — Compound's USDC market sat **0.17 percentage points** from its kink, where borrowing goes from 4% to 16%. Hours later it crossed, and the cost of borrowing rose 1.7x.
+- **Exposure** — a portfolio across three venues had **81% of its traceable capital behind one collateral**, reaching it through two of them. The apparent diversification was not real.
+
+The four reports are **Base lending only** (`USDC` / `WETH`): liquid staking has no utilisation, no interest-rate curve and no itemised incentive to decompose, so the plugin refuses those assets rather than letting the agent pay for a 404.
+
 **Quick start:** see [`examples/`](examples/README.md) for a copy-paste plugin setup and a standalone fetch-and-verify snippet.
 
 ## Purpose / role

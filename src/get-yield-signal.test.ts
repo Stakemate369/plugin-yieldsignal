@@ -24,7 +24,9 @@ describe("yieldSignalPlugin", () => {
 
   it("expõe a action GET_YIELD_SIGNAL com similes e descrição corretos", () => {
     expect(yieldSignalPlugin.name).toBe("yieldsignal");
-    expect(yieldSignalPlugin.actions).toHaveLength(1);
+    // Verifica o CONJUNTO, não a contagem: um número cru quebra a cada produto
+    // novo sem dizer o que mudou, e não pega uma action renomeada por engano.
+    expect((yieldSignalPlugin.actions ?? []).map((a) => a.name)).toContain("GET_YIELD_SIGNAL");
 
     const action = (yieldSignalPlugin.actions ?? [])[0];
     expect(action.name).toBe("GET_YIELD_SIGNAL");

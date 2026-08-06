@@ -5,6 +5,9 @@ import {
   parseYieldSignalResponse,
   verifyYieldSignalSignature,
   YIELD_SIGNAL_PATHS,
+  REPORT_PATHS,
+  type LendingAsset,
+  type ReportKind,
   type YieldSignalAsset,
   type YieldSignalResponse,
 } from "./security.js";
@@ -17,8 +20,15 @@ export {
   YIELDSIGNAL_PAYEE,
   YIELD_SIGNAL_ASSETS,
   YIELD_SIGNAL_PATHS,
+  LENDING_ASSETS,
+  REPORT_KINDS,
+  REPORT_PATHS,
+  KNOWN_PROTOCOLS,
+  buildPositionsParam,
 } from "./security.js";
 export type {
+  LendingAsset,
+  ReportKind,
   YieldSignalAsset,
   YieldSignalRate,
   YieldSignalResponse,
@@ -95,4 +105,98 @@ export async function fetchYieldSignal(
   }
 
   return parsed;
+}
+
+/** Corpo de um relatório analítico: o relatório + o sinal assinado + o texto verbatim. */
+export interface YieldReport {
+  signal: YieldSignalResponse;
+  /** Texto EXATO que foi assinado — permite conferir o contentHash sem re-serializar. */
+  signedSignalText: string;
+  [field: string]: unknown;
+}
+
+/**
+ * Compra um dos quatro relatórios analíticos, com as MESMAS quatro proteções do
+ * `fetchYieldSignal`: política de gasto, fetch com timeout, validação de schema
+ * e verificação EIP-712 obrigatória.
+ *
+ * A verificação aqui tem uma diferença que importa: nas rotas analíticas a
+ * assinatura cobre o SINAL EMBUTIDO, não o corpo inteiro (o relatório é função
+ * determinística das mesmas leituras). Então além de conferir a assinatura
+ * sobre `signedSignalText`, este código confere que esse texto assinado
+ * DESCREVE o `signal` que veio no corpo — senão um servidor poderia assinar um
+ * sinal e embutir outro, e a verificação passaria enganada.
+ */
+export async function fetchYieldReport(
+  kind: ReportKind,
+  asset: LendingAsset,
+  opts: { query?: Record<string, string | number | undefined>; timeoutMs?: number } = {},
+): Promise<YieldReport> {
+  const client = new CdpX402Client({ spendControls: buildSpendControls() });
+  const fetchWithPayment = wrapFetchWithPayment(
+    fetch,
+    client as unknown as Parameters<typeof wrapFetchWithPayment>[1],
+  );
+
+  const qs = Object.entries(opts.query ?? {})
+    .filter(([, v]) => v !== undefined && v !== "")
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join("&");
+  const url = `${YIELDSIGNAL_BASE_URL}${REPORT_PATHS[kind][asset]}${qs ? `?${qs}` : ""}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetchWithPayment(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (!res.ok) {
+    throw new Error(`YieldSignal ${kind} request failed: ${res.status} ${await res.text()}`);
+  }
+
+  const raw = await res.text();
+  let body: YieldReport;
+  try {
+    body = JSON.parse(raw) as YieldReport;
+  } catch {
+    throw new Error(`YieldSignal ${kind} returned a body that is not valid JSON`);
+  }
+  if (typeof body.signedSignalText !== "string" || body.signal === undefined) {
+    throw new Error(
+      `YieldSignal ${kind} response is missing the embedded signed signal — refusing to trust an unverifiable paid response`,
+    );
+  }
+
+  // O texto assinado tem que descrever o sinal que veio no corpo.
+  const assinado = parseYieldSignalResponse(body.signedSignalText);
+  if (JSON.stringify(assinado) !== JSON.stringify(body.signal)) {
+    throw new Error(
+      `YieldSignal ${kind} signed a different signal than the one embedded in the body — refusing a mismatched response`,
+    );
+  }
+
+  const signature = res.headers.get("x-signal-signature") as `0x${string}` | null;
+  const signer = res.headers.get("x-signal-signer") as `0x${string}` | null;
+  const eip712Json = res.headers.get("x-signal-eip712-payload");
+  if (!signature || !signer || !eip712Json) {
+    throw new Error(
+      `YieldSignal ${kind} response was not signed (missing X-Signal-* headers) — refusing to trust an unauthenticated paid response`,
+    );
+  }
+  const ok = await verifyYieldSignalSignature({
+    raw: body.signedSignalText,
+    signature,
+    signer,
+    eip712Json,
+  });
+  if (!ok) {
+    throw new Error(
+      `YieldSignal ${kind} response failed EIP-712 verification (signer/contentHash mismatch) — refusing to trust a tampered response`,
+    );
+  }
+
+  return body;
 }

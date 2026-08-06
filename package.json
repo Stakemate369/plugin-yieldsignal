@@ -1,7 +1,7 @@
 {
   "name": "elizaos-plugin-yieldsignal",
-  "version": "0.2.2",
-  "description": "Real-time, risk-weighted ETH liquid staking + USDC/WETH lending APY signal on Base (Aave/Compound/Morpho/Moonwell/Euler/Fluid), paid per call via x402 and EIP-712 signed by the seller",
+  "version": "0.3.0",
+  "description": "Paid (x402) yield and risk intelligence for elizaOS agents: the yield signal plus four risk reports — durability, exit capacity, rate sensitivity and shared exposure. EIP-712 verified, EAS-attested on-chain.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -43,7 +43,9 @@
     "@coinbase/cdp-sdk": "^1.53.0",
     "@x402/core": "^2.19.0",
     "@x402/evm": "^2.19.0",
+    "@x402/extensions": "^2.21.0",
     "@x402/fetch": "^2.18.0",
+    "@x402/svm": "^2.21.0",
     "viem": "^2.55.0"
   },
   "peerDependencies": {

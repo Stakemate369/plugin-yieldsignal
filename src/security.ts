@@ -29,6 +29,59 @@ export const YIELD_SIGNAL_PATHS: Record<YieldSignalAsset, string> = {
   WETH: "/signal/weth-base-yield",
 };
 
+/**
+ * Os quatro produtos analíticos existem SÓ para mercado de empréstimo. Staking
+ * líquido não tem utilização, não tem curva de juros e a fonte não itemiza
+ * incentivo nos cinco protocolos — as rotas nem existem para ele, então o tipo
+ * recusa em compilação em vez de deixar o agente pagar por um 404.
+ */
+export type LendingAsset = "USDC" | "WETH";
+
+export const LENDING_ASSETS: readonly LendingAsset[] = ["USDC", "WETH"];
+
+export type ReportKind = "durability" | "capacity" | "sensitivity" | "exposure";
+
+export const REPORT_KINDS: readonly ReportKind[] = ["durability", "capacity", "sensitivity", "exposure"];
+
+/**
+ * Mesmo princípio do mapa acima: caminho EXPLÍCITO por produto e asset, nunca
+ * derivado de string. Um `/${kind}/${asset.toLowerCase()}-base-yield` pareceria
+ * mais limpo e voltaria a produzir a mesma classe de bug que já custou uma rota
+ * inexistente em versão anterior.
+ */
+export const REPORT_PATHS: Record<ReportKind, Record<LendingAsset, string>> = {
+  durability: { USDC: "/durability/usdc-base-yield", WETH: "/durability/weth-base-yield" },
+  capacity: { USDC: "/capacity/usdc-base-yield", WETH: "/capacity/weth-base-yield" },
+  sensitivity: { USDC: "/sensitivity/usdc-base-yield", WETH: "/sensitivity/weth-base-yield" },
+  exposure: { USDC: "/exposure/usdc-base-yield", WETH: "/exposure/weth-base-yield" },
+};
+
+/** Protocolos aceitos em `?positions=` da rota de exposição. */
+export const KNOWN_PROTOCOLS: readonly string[] = ["aave", "morpho", "compound", "moonwell", "euler", "fluid"];
+
+/**
+ * Monta `?positions=` a partir de um mapa, recusando o que não reconhece.
+ *
+ * Validar do lado do CLIENTE, antes de pagar, é o ponto: um protocolo escrito
+ * errado passaria pelo servidor como "não atribuído" e o agente pagaria por uma
+ * análise de risco que ignorou parte da carteira sem dizer que ignorou.
+ */
+export function buildPositionsParam(positions: Record<string, number>): string {
+  const partes: string[] = [];
+  for (const [protocolo, usd] of Object.entries(positions)) {
+    const p = protocolo.trim().toLowerCase();
+    if (!KNOWN_PROTOCOLS.includes(p)) {
+      throw new Error(`unknown protocol "${protocolo}" — known: ${KNOWN_PROTOCOLS.join(", ")}`);
+    }
+    if (!Number.isFinite(usd) || usd <= 0) {
+      throw new Error(`position for "${p}" must be a positive number of USD`);
+    }
+    partes.push(`${p}:${Math.round(usd)}`);
+  }
+  if (partes.length === 0) throw new Error("at least one position is required");
+  return partes.join(",");
+}
+
 // --- Fixed facts about the service being paid --------------------------------
 // WHO gets paid, on WHICH chain, in WHICH asset. Pinned here so the wallet can
 // never be redirected to a different payee/asset/network by a tampered or
